@@ -55,18 +55,17 @@ namespace Guessinger
                 Console.WriteLine("2. View High Scores");
                 Console.WriteLine("3. Exit");
 
-                int choice;
-                int.TryParse(Console.ReadLine(), out choice);
-
+                string choice = Console.ReadLine();
+                Console.WriteLine($"Choice entered: '{choice}'");
                 switch (choice)
                 {
-                    case 1:
+                    case "1":
                         PlayGuessinger();
                         break;
-                    case 2:
+                    case "2":
                         ViewHighScores();
                         break;
-                    case 3:
+                    case "3":
                         programRuns = false;
                         break;
                     default:
@@ -102,8 +101,10 @@ namespace Guessinger
                         }
                     }
                 }
+                connection.Close();
             }
         }
+
 
         static void UpdateHighScore(Player player)
         {
@@ -145,92 +146,16 @@ namespace Guessinger
                             {
                                 insertCommand.Parameters.AddWithValue("@Playername", player.Playername);
                                 insertCommand.Parameters.AddWithValue("@Highscore", player.Highscore);
+                                
+                                insertCommand.ExecuteNonQuery(); 
 
-                                insertCommand.ExecuteNonQuery();
                             }
                         }
                     }
                 }
+                connection.Close();
             }
         }
-
-        static void PlayGuessinger()
-        {
-            Console.Clear();
-            Console.WriteLine("Welcome to Guessinger! Guess the number between 1 and 10.");
-
-            string playerName;
-            do
-            {
-                Console.Write("Enter your name: ");
-                playerName = Console.ReadLine();
-                if (string.IsNullOrEmpty(playerName))
-                {
-                    Console.Write("Name can't be left empty.\n");
-                }
-            } while (string.IsNullOrEmpty(playerName));
-
-            // Generate a random number for the player to guess
-            Random random = new Random();
-            int correctNumber = random.Next(1, 11);
-            // int correctNumber = 1;
-
-            int points = 0;
-            bool guessedCorrectly = true;
-
-            while (guessedCorrectly)
-            {
-                Console.Write("Enter your guess (or enter 0 to exit): ");
-                string input = Console.ReadLine();
-
-                if (string.IsNullOrEmpty(input))
-                {
-                    Console.Write("Guess can't be left empty.\n");
-                    continue;
-                }
-
-                if (int.TryParse(input, out int playerGuess))
-                {
-                    // Successfully parsed as an integer
-                    if (playerGuess == 0)
-                    {
-                        // Exit the loop if the player chooses to stop guessing
-                        break;
-                    }
-
-                    if (playerGuess == correctNumber)
-                    {
-                        Console.WriteLine("Congratulations! You guessed the correct number.");
-                        points++;
-                        Console.WriteLine($"You earned {points} point{(points != 1 ? "s" : "")}.");
-
-                        // Generate a new random number for the next guess
-                         correctNumber = random.Next(1, 11);
-                       // correctNumber = 1; // For simplicity, set it to 1; replace with the random generation logic
-
-                    }
-                    else
-                    {
-                        guessedCorrectly = false;
-                        Console.WriteLine($"Sorry, the correct number was {correctNumber}. Try again!");
-                    }
-                }
-                else
-                {
-                    Console.Write("Invalid input. Please enter a valid number.\n");
-                }
-            }
-
-            Console.WriteLine($"Your high score is: {points} points.");
-            Player currentPlayer = new Player { Playername = playerName, Highscore = points };
-            UpdateHighScore(currentPlayer);
-
-            Console.WriteLine("\nPress any key to return.");
-            Console.ReadKey();
-
-            LoadScores();
-        }
-
         static void ViewHighScores()
         {
             Console.Clear();
@@ -251,7 +176,93 @@ namespace Guessinger
             }
 
             Console.WriteLine("\nPress any key to return.");
-            Console.ReadKey();
+            Console.ReadKey(); // Wait for user input before returning
+        }
+
+
+        static void PlayGuessinger()
+        {
+            Console.Clear();
+            Console.WriteLine("Welcome to Guessinger! Guess the number between 1 and 10.");
+
+            string playerName = "";
+            bool exitGame = false;
+
+            do
+            {
+                Console.Write("Enter your name (or press Enter to exit): ");
+                playerName = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(playerName))
+                {
+                    // Exit the game if Enter is pressed without entering a name
+                    exitGame = true;
+                    break;
+                }
+
+                if (string.IsNullOrWhiteSpace(playerName))
+                {
+                    Console.Write("Name can't be left empty.\n");
+                    continue;
+                }
+
+                // Generate a random number for the player to guess
+                Random random = new Random();
+                int correctNumber = random.Next(1, 11);
+
+                int points = 0;
+                bool guessedCorrectly = true;
+
+                while (guessedCorrectly)
+                {
+                    Console.Write("Enter your guess (or enter 0 to exit): ");
+                    string input = Console.ReadLine();
+
+                    if (string.IsNullOrEmpty(input))
+                    {
+                        Console.Write("Guess can't be left empty.\n");
+                        continue;
+                    }
+
+                    if (int.TryParse(input, out int playerGuess))
+                    {
+                        // Successfully parsed as an integer
+                        if (playerGuess == 0)
+                        {
+                            // Exit the loop if the player chooses to stop guessing
+                            break;
+                        }
+
+                        if (playerGuess == correctNumber)
+                        {
+                            Console.WriteLine("Congratulations! You guessed the correct number.");
+                            points++;
+                            Console.WriteLine($"You earned {points} point{(points != 1 ? "s" : "")}.");
+
+                            // Generate a new random number for the next guess
+                            correctNumber = random.Next(1, 11);
+                        }
+                        else
+                        {
+                            guessedCorrectly = false;
+                            Console.WriteLine($"Sorry, the correct number was {correctNumber}. Try again!");
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        Console.Write("Invalid input. Please enter a valid number.\n");
+                    }
+                }
+
+                Console.WriteLine($"Your high score is: {points} points.");
+                Player currentPlayer = new Player { Playername = playerName, Highscore = points };
+                UpdateHighScore(currentPlayer);
+
+                Console.WriteLine("\nPress Enter to return.");
+            } while (!exitGame && Console.ReadKey().Key != ConsoleKey.Escape);
+
+            LoadScores();
         }
     }
 }
